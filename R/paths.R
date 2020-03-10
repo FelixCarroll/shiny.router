@@ -1,12 +1,55 @@
 ########################### Internal functions
 
+ROUTE_DYNAMIC <- ":"
+ROUTE_DYNAMIC_REGEX <- ".*"
+
 #' Internal function that validates that path is defined in routes.
 #'
 #' @param routes A routes (list).
 #' @param path A path.
 #' @return Boolean value indicating if path is defined.
 valid_path <- function(routes, path) {
-  (path %in% names(routes))
+  route_paths <- names(routes)
+  is_dynamic <- unlist(lapply(X = route_paths, FUN = grepl, pattern=ROUTE_DYNAMIC))
+  static_paths <- route_paths[!is_dynamic]
+  if(path %in% static_paths) {
+    TRUE
+  } else { # Check if path is using a dynamic route
+    dynamic_paths <- route_paths[is_dynamic]
+    converted_paths <- convertDynamic(dynamic_paths)
+    any(regexpr(paste("^", converted_paths, "$", sep=""), path) != -1)
+  }
+}
+
+actual_path <- function(routes, path){
+  route_paths <- names(routes)
+  is_dynamic <- unlist(lapply(X = route_paths, FUN = grepl, pattern=ROUTE_DYNAMIC))
+  static_paths <- route_paths[!is_dynamic]
+  if(path %in% static_paths) {
+    path
+  } else { # Check if path is using a dynamic route
+    dynamic_paths <- route_paths[is_dynamic]
+    converted_paths <- convertDynamic(dynamic_paths)
+    dynamic_paths[regexpr(paste("^", converted_paths, "$", sep=""), path) != -1]
+  }
+}
+
+
+#' Internal function that converts dynamic paths into valid regex expressions.
+#'
+#' @param paths A list of routes used in router (vector)
+#' @return character vector of converted routes
+convertDynamic <- function(paths){
+  unlist(lapply(X=strsplit(paths, "/"),
+         FUN=function(x){
+           paste0(ifelse(startsWith(x, ROUTE_DYNAMIC), unlist(lapply(X=x, FUN=function(y){substr(y,2,nchar(y))})), x), collapse = "/")
+           }))
+}
+
+retrieve_vars <- function(regex_path, path){
+  dynamic_loc  <- unlist(lapply(X=strsplit(regex_path, "/"), FUN=substr, 1, 1))
+  dynamic_var  <- unlist(strsplit(path, "/"))[dynamic_loc == ROUTE_DYNAMIC]
+  as.list(dynamic_var)
 }
 
 #' Formats a URL fragment into a hashpath starting with "#!/"
@@ -68,7 +111,7 @@ route_link <- function(path) {
 #' }
 #' @details
 #' \code{parse_url_path} allows parsing paramaters lists from url. See more in examples.
-#' 
+#'
 #' Note that having query string appear before \code{#!} may cause browser to refresh
 #' and thus reset Shiny session.
 #' @export

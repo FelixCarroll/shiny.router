@@ -1,5 +1,5 @@
 library(shiny)
-library(shiny.router)
+# library(shiny.router)
 
 # This generates menu in user interface with links.
 menu <- (

@@ -114,8 +114,14 @@ create_router_callback <- function(root, routes) {
     # Switch the displayed page, if the path changes.
     output[[ROUTER_UI_ID]] <- shiny::renderUI({
       log_msg("shiny.router main output. path: ", session$userData$shiny.router.page()$path)
-      routes[[session$userData$shiny.router.page()$path]][["server"]](input, output, session, ...)
-      routes[[session$userData$shiny.router.page()$path]][["ui"]]
+      original_path <- actual_path(routes, session$userData$shiny.router.page()$path)
+      server_call <- list(input=input, output=output, session=session)
+      if(original_path != session$userData$shiny.router.page()$path) {
+        routes[[original_path]][["server"]](input, output, session, ..., dynamic=retrieve_vars(original_path, session$userData$shiny.router.page()$path))
+      } else {
+        routes[[original_path]][["server"]](input, output, session, ...)
+      }
+      routes[[original_path]][["ui"]]
     })
   }
 }

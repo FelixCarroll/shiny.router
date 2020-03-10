@@ -16,7 +16,8 @@ page <- function(title, content) {
     menu,
     titlePanel(title),
     p(content),
-    dataTableOutput("table")
+    dataTableOutput("table"),
+    textInput("txt1", "number", 0)
   )
 }
 
@@ -32,9 +33,13 @@ root_callback <- function(input, output, session) {
   })
 }
 
-other_callback <- function(input, output, session) {
+other_callback <- function(input, output, session, aaa) {
   output$table <- renderDataTable({
     data.frame(x = c(5, 6), y = c(7, 8))
+  })
+
+  observe({
+    updateTextInput(session, "txt1", value = aaa)
   })
 }
 
@@ -42,7 +47,7 @@ other_callback <- function(input, output, session) {
 # well as a server-side callback for each page.
 router <- make_router(
   route("/", root_page, root_callback),
-  route("other", other_page, other_callback),
+  route(":[a-z]/1", other_page, other_callback),
   route("third", other_page, NA)
 )
 
